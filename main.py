@@ -7,7 +7,7 @@ lr = 0.001
 DECAY = 0.0001
 
 #Dataset used:
-dataset = d.FashionMNIST()
+dataset = d.MNIST()
 
 model = Model([Dense_Layer(784, 100), ReLU(), Dense_Layer(100, 64), ReLU(), Dense_Layer(64, 10), softmax()], lr, DECAY)
 model.train(dataset, EPOCHS, BATCH_SIZE)
