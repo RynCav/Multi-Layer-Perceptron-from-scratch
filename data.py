@@ -1,43 +1,29 @@
-#standerd MNIST dataset
-class MNIST:
+from utils import load, randomize_lists
+
+
+class Data:
+    #initialize the data
     def __init__(self):
-        from utils import load
-        directory = 'Datasets/MNIST/'
         #load files, values are already normilized & y_true is onehot encoded
-        self.train_X, self.test_X = load(f'{directory}MNIST_Train_X'), load(f'{directory}MNIST_Test_X')
-        self.train_y, self.test_y = load(f'{directory}MNIST_Train_y'), load(f'{directory}MNIST_Test_y')
+        self.train_X, self.test_X = load(f'{self.directory}Train_X'), load(f'{self.directory}Test_X')
+        self.train_y, self.test_y = load(f'{self.directory}Train_y'), load(f'{self.directory}Test_y')
 
+    #load the training data
     def train(self):
-        #returns the training values
-        return self.train_X, self.train_y
+        # Randomises the data
+        return randomize_lists(self.train_X, self.train_y)
 
+    #load the testing data
     def test(self):
-        #returns the testing data
+        # returns the testing data
         return self.test_X, self.test_y
+
+
+#standerd MNIST dataset
+class MNIST(Data):
+    directory = 'Datasets/MNIST/MNIST_'
 
 
 #Fashion MNIST dataset
-class FashionMNIST:
-    def __init__(self):
-        from utils import load
-        directory = 'Datasets/Fashion MNIST/'
-        #load files, values are already normilized & y_true is onehot encoded
-        self.train_X, self.test_X = load(f'{directory}FMNIST_X_test'), load(f'{directory}FMNIST_X_train')
-        self.train_y, self.test_y = load(f'{directory}FMNIST_y_test'), load(f'{directory}FMNIST_y_train')
-
-    def train(self):
-        #returns the training data
-        return self.train_X, self.train_y
-
-    def test(self):
-        #returns the testing data
-        return self.test_X, self.test_y
-
-
-
-
-
-
-
-
-
+class FashionMNIST(Data):
+    directory = 'Datasets/Fashion MNIST/FMNIST_'
