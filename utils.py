@@ -1,4 +1,5 @@
 import pickle
+import random
 
 
 def dot_product(array, matrix):
@@ -33,6 +34,18 @@ def matrix_multiply(matrix1, matrix2):
 def batch(X, batch_size, i):
     # returns a batch of n size that is conatins data that hasnt been trained before in the Epoch
     return [X[l] for l in range(i * batch_size, i * batch_size + batch_size)]
+
+
+def argmax(list):
+    #return the highest value's index
+    return list.index(max(list))
+
+
+def randomize_lists(list1, list2):
+    combined = list(zip(list1, list2))
+    random.shuffle(combined)
+    return zip(*combined)
+
 
 """Load and save the model"""
 def load(filename):
