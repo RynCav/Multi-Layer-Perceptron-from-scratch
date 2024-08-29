@@ -1,20 +1,20 @@
-from MLP import *
+from params import *
+from model import *
 
-#Hyperparameters
-BATCH_SIZE = 10
-EPOCHS = 1
-lr = 0.001
-DECAY = 0.0001
+#innizlize each layer and activation function
+STEPS = [
+   Dense_Layer(784, 100), ReLU(), Dropout_Layer(dr), Dense_Layer(100, 64), ReLU(), Dropout_Layer(dr),
+   Dense_Layer(64, 10), Softmax()
+]
 
-#Dataset used:
-dataset = d.MNIST()
+#create the model object
+model = Model(STEPS, lr, DECAY)
 
-model = Model([Dense_Layer(784, 100), ReLU(), Dense_Layer(100, 64), ReLU(), Dense_Layer(64, 10), softmax()], lr, DECAY)
+#train the model
 model.train(dataset, EPOCHS, BATCH_SIZE)
-model.evaluate(dataset)
-"""
-# Load and evaluate model
-model = load('model.pickle')
-model.evaluate(dataset)
-"""
 
+#test the model to determine accuracy
+model.evaluate(dataset)
+
+#save the model to the specified file
+save(model, 'model.pickle')
