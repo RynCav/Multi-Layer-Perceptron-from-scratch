@@ -1,3 +1,3 @@
 # Multi-Layer-Perceptron
-Due to github size limits, instal mnist separately
-MNIST: 96% Accuracy, 10 Epochs, Batch size = 10 and no decay rate. lr = 0.001
+A Multi Layer Perceptron with Regulazation & Adam Optimizer from scratch, no external libraries
+Two built in libaries, MNIST and FashionMNIST
