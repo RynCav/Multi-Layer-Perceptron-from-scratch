@@ -8,13 +8,13 @@ STEPS = [
 ]
 
 #create the model object
-model = Model(STEPS, lr, DECAY)
+model = Model(STEPS)
 
 #train the model
 model.train(dataset, EPOCHS, BATCH_SIZE)
 
 #test the model to determine accuracy
-model.evaluate(dataset)
+model.test(dataset)
 
-#save the model to the specified file
+#save the model to the specified file1
 save(model, 'model.pickle')
