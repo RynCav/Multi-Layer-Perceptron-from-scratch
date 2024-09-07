@@ -55,11 +55,11 @@ class ReLU:
 #Dropout Layer
 class Dropout_Layer:
     def __init__(self, rate = 0.5):
-        self.rate = 1 - rate
+        self.rate = rate
 
     def forward(self, inputs):
         self.inputs = inputs
-        self.bmask = [[1 if random.random() > self.rate else 0 for i in row] for row in inputs]
+        self.bmask = [[1 if random.random() < self.rate else 0 for i in row] for row in inputs]
         self.outputs = [[i * m for i, m in zip(irow, mrow)]for irow, mrow in zip(inputs, self.bmask)]
 
     def backward(self, dinputs):
@@ -81,13 +81,12 @@ class Softmax:
 
 #Categorical Cross-entropy with One Hot encoded data
 class CCE:
-    def __call__(self, inputs, expected, model, epsilon = 1e-8):
+    def __call__(self, model, expected, epsilon = 1e-8):
         #clip values to prevent log of 0 errors in each batch
-        clipped = [[max(epsilon, min(i, 1 - epsilon)) for i in batch] for batch in inputs]
+        clipped = [[max(epsilon, min(i, 1 - epsilon)) for i in batch] for batch in model.SMoutputs]
         loss_matrix = [sum([-math.log(l) if e == 1 else 0 for l, e in zip(b, e)]) for b, e in zip(clipped, expected)]
         #calc & return the losses and add reg loss
         norm_loss, reg_loss = sum(loss_matrix) / len(loss_matrix), self.regulazation_loss(model)
-        self.test = norm_loss
         return f'Loss: {norm_loss + reg_loss} (Normal Loss: {norm_loss} Reg Loss: {reg_loss})'
 
     def regulazation_loss(self, model):
@@ -103,14 +102,12 @@ class CCE:
 
 #optimizer
 class Adam:
-    def __init__(self, lr=0.01, b1=0.9, b2=0.999, decay=0):
-        self.a, self.initial_lr = lr, lr
-        self.decay = decay
+    def __init__(self, b1=0.9, b2=0.999):
         self.t = 0
         self.b1, self.b2 = b1, b2
         self.cached = {}
 
-    def update(self, Layer, epsilon=1e-8):
+    def update(self, Layer, lr, epsilon=1e-8):
         # Initialize cache if not already done
         if id(Layer) not in self.cached:
             self.cached[id(Layer)] = {
@@ -123,9 +120,6 @@ class Adam:
         # Increment step count
         self.t += 1
 
-        # Apply decay to learning rate if necessary
-        if self.decay:
-            self.a = self.initial_lr * (1. / (1. + self.decay * self.t))
 
         # Retrieve cached momentums and velocities
         mw = self.cached[id(Layer)]["mw"]
@@ -134,10 +128,10 @@ class Adam:
         vb = self.cached[id(Layer)]["vb"]
 
         # Update momentums and velocities
-        for i in range(len(Layer.dweights)):
-            for j in range(len(Layer.dweights[i])):
-                mw[i][j] = self.b1 * mw[i][j] + (1 - self.b1) * Layer.dweights[i][j]
-                vw[i][j] = self.b2 * vw[i][j] + (1 - self.b2) * (Layer.dweights[i][j] ** 2)
+        mw = [[self.b1 * m + (1 - self.b1) * dw for m, dw in zip(mw, dweights)]
+              for mw, dweights in zip(mw, Layer.dweights)]
+        vw = [[self.b2 * v + ( 1 - self.b2) * (dw ** 2) for dw, v in zip(dweights, vw)]
+              for dweights, vw in zip(Layer.dweights, vw)]
 
         mb = [self.b1 * mb[i] + (1 - self.b1) * Layer.dbiases[i] for i in range(len(mb))]
         vb = [self.b2 * vb[i] + (1 - self.b2) * (Layer.dbiases[i] ** 2) for i in range(len(vb))]
@@ -149,33 +143,96 @@ class Adam:
         vb_hat = [v / (1 - self.b2 ** self.t) for v in vb]
 
         # Update weights and biases
-        for i in range(len(Layer.weights)):
-            for j in range(len(Layer.weights[i])):
-                Layer.weights[i][j] -= self.a * mw_hat[i][j] / (math.sqrt(vw_hat[i][j]) + epsilon)
+        Layer.weights = [[w - lr * m / (math.sqrt(v) + epsilon) for w, m, v in zip(weights, mh, vh)]
+        for weights, mh, vh in zip(Layer.weights, mw_hat, vw_hat)]
 
-        Layer.biases = [b - self.a * m / (math.sqrt(v) + epsilon) for b, m, v in
+        Layer.biases = [b - lr * m / (math.sqrt(v) + epsilon) for b, m, v in
                         zip(Layer.biases, mb_hat, vb_hat)]
 
         # Save the updated momentums and velocities in the cache
         self.cached[id(Layer)] = {"mw": mw, "vw": vw, "mb": mb, "vb": vb}
 
 
+#stops the model early when necessary
+class Early_Stopping:
+    def __init__ (self, patience):
+        self.patience, self.patience_counter = patience, 0
+        self.best_model = None
+        self.best_loss = float('inf')
+
+    def __call__ (self, model, dataset):
+        new_loss = model.evaluate(dataset)
+        if new_loss < self.best_loss:
+            self.best_loss = new_loss
+            self.best_model = model
+
+        else:
+            self.patience_counter += 1
+            if self.patience_counter == self.patience:
+                self.stop(model)
+
+
+    def stop(self, model):
+            raise Exception("early stopping activated")
+            model.stop = True
+
+
+"""Learning Rate Schedulers"""
+class OneCycleLR:
+    def __init__(self, max_lr, initial_lr, epochs, batch_size, dataset_size):
+        self.total_steps = dataset_size / batch_size * epochs
+        self.warmup_steps = self.total_steps * 0.1
+        self.anneal_steps = self.total_steps - self.warmup_steps
+        self.max_lr, self.initial_lr = max_lr, initial_lr
+        self.lr = self.initial_lr
+
+    def step(self, step):
+        if step <= self.warmup_steps:
+             self.warm_up(step)
+        else:
+            self.aneeling(step)
+
+        return self.lr
+
+    def warm_up(self, step):
+        self.lr = self.initial_lr + (step / self.warmup_steps) * (self.max_lr - self.initial_lr)
+
+    def aneeling(self, step):
+        self.lr = self.max_lr - ((step - self.warmup_steps) / self.anneal_steps) * (self.max_lr - self.initial_lr)
+
+
+class Inverse_Time_Decay:
+    def __init__(self, lr, decay = 0):
+        self.lr, self.initial_lr = lr, lr
+        self.decay = decay
+
+    def step(self, steps):
+        if self.decay:
+            self.lr = self.initial_lr / (1 / (1 + self.decay * steps))
+        return self.lr
+
+
 #overall model object that holds all data of the MLP
 class Model:
-    def __init__ (self, steps, learning_rate, decay):
+    def __init__ (self, Layers, optimizer = Adam(), scheduler = Inverse_Time_Decay(0.01), early_stopping = None):
         #initialize each layer and activation function for forward and backward passes
-        self.steps = steps
+        self.steps = Layers
         #set the optimizer to Adam and pass the learning and decay rates
-        self.optimizer = Adam(lr = learning_rate, decay = decay)
+        self.optimizer = optimizer
         #set the loss function to Categorical Cross Entropy or Log Loss
         self.loss_function = CCE()
+        #set wether early stopping is applicable
+        self.early_stopping = early_stopping
+        self.stop = False
+        #set the scheduler
+        self.scheduler = scheduler
 
     def forward(self, X_batch, training):
         #set the X_batch to inputs inorder to loop through each layer
         inputs = X_batch
         #call each step's forward method and set it's output to inputs
         for step in self.steps:
-            #turns off Dropout Layers when on testing set
+            #turns off Dropout Layers when on testing set or validation set
             if training or not isinstance(step, Dropout_Layer):
                 step.forward(inputs)
                 inputs = step.outputs
@@ -194,14 +251,13 @@ class Model:
         #iterate through the steps, of the class is a dense layer then update the weights * biases using Adam
         for i in self.steps:
             if isinstance(i, Dense_Layer):
-                self.optimizer.update(i)
+                self.optimizer.update(i, self.scheduler.step(self.optimizer.t))
 
     def accuracy(self, y_pred, y_true):
         # takes an argmax of the softmax outputs and the y_true matrixs. If they are equal, add one and sum the list
         correct = sum([1 if argmax(s) == argmax(y) else 0 for s, y in zip(y_pred, y_true)])
         # divide the number correct by the number of data
         return correct / len(y_true)
-
 
     def train(self, Dataset, epochs, batch_size):
         X, y = Dataset.train()
@@ -215,16 +271,25 @@ class Model:
                 self.backward(y_train)
                 self.update()
                 #prints the loss of each specified epoch
-                print(f'Epoch {epoch + 1}, {self.loss_function(self.SMoutputs, y_train, self)}, lr: {self.optimizer.a},'
-                        f' steps {self.optimizer.t}')
-                if self.loss_function.test <= 0.03:
-                    save(self, 'model.pickle')
+            print(f'Epoch {epoch + 1}, {self.loss_function(self, y_train)}, lr: {self.scheduler.lr},'
+                    f' steps {self.optimizer.t}')
+            if self.early_stopping:
+                self.early_stopping(self, Dataset)
+                if self.stop:
+                    break
 
-    def evaluate(self, Dataset):
+    def validate(self, model):
+        # get the validation dataset and set it's truth values
+        X, y_true = Dataset.validate()
+        # forward propagation inorder to determine what the ANN thinks
+        self.forward(X, False)
+        return self.loss_function(self, y_true)
+
+    def test(self, Dataset):
         #get the testing dataset and set it's truth values
         X, y_true = Dataset.test()
         #forward propagation inorder to determine what the ANN thinks
         self.forward(X, False)
         #print out results
-        print(f'Testing: {self.loss_function(self.SMoutputs, y_true, self)} lr: {self.optimizer.a} '
+        print(f'Testing: {self.loss_function(self, y_true)} lr: {self.scheduler.lr} '
               f'steps {self.optimizer.t} Accurrcy: {self.accuracy(self.SMoutputs, y_true)}')
