@@ -111,8 +111,8 @@ class Adam:
         # Initialize cache if not already done
         if id(Layer) not in self.cached:
             self.cached[id(Layer)] = {
-                "mw": [[0 for _ in l] for l in Layer.weights],
-                "vw": [[0 for _ in l] for l in Layer.weights],
+                "mw": [[0 for i in l] for l in Layer.weights],
+                "vw": [[0 for i in l] for l in Layer.weights],
                 "mb": [0] * len(Layer.biases),
                 "vb": [0] * len(Layer.biases)
             }
@@ -198,7 +198,8 @@ class OneCycleLR:
         self.lr = self.initial_lr + (step / self.warmup_steps) * (self.max_lr - self.initial_lr)
 
     def aneeling(self, step):
-        self.lr = self.max_lr - ((step - self.warmup_steps) / self.anneal_steps) * (self.max_lr - self.initial_lr)
+        anneal = (step - self.warmup_steps) / self.anneal_steps
+        self.lr = self.max_lr - (self.max_lr - self.initial_lr) * anneal
 
 
 class Inverse_Time_Decay:
