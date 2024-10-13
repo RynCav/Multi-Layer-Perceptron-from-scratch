@@ -84,12 +84,12 @@ class Tanh:
 
 # Dropout Layer
 class DropoutLayer:
-    def __init__(self, rate=0.5):
+    def __init__(self, rate=0.3):
         self.rate = rate
 
     def forward(self, inputs):
         self.inputs = inputs
-        self.bmask = [[1 if random.random() > self.rate else 0 for i in row] for row in inputs]
+        self.bmask = [[1 if random.random() < self.rate else 0 for i in row] for row in inputs]
         outputs = [[i * m for i, m in zip(irow, mrow)] for irow, mrow in zip(inputs, self.bmask)]
         return outputs
 
@@ -112,7 +112,7 @@ class Softmax:
          return [[i - l for i, l in zip(z, y)] for z, y in zip(self.outputs, y_true)]
 
 
-# Categorical Cross-entropy with One Hot encoded data
+#L1 and L2 Reg Loss
 class _RegLoss:
     def regulazation_loss(self, model):
         reg_loss = 0
@@ -125,6 +125,7 @@ class _RegLoss:
         return reg_loss
 
 
+# Categorical Cross-entropy with One Hot encoded data
 class CCE(_RegLoss):
      def forward(self, model, predicated, expected, epsilon=1e-8):
          # clip values to prevent log of 0 errors in each batch
@@ -142,6 +143,7 @@ class CCE(_RegLoss):
          return dinputs
 
 
+# Mean Squared Error
 class MSE(_RegLoss):
     def forward(self, model, predicted, expected):
         norm_loss = sum([sum([(y - y_hat) ** 2 for y, y_hat in zip(batch, batch_hat)]) / len(batch)
