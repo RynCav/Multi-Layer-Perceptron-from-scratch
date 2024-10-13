@@ -5,7 +5,7 @@ BATCH_SIZE = 100
 EPOCHS = 10
 lr = 0.0001
 max_lr = 0.001
-dr = 1
+dr = 0.3
 DECAY = 5e-5
 PATIENCE = 3
 
