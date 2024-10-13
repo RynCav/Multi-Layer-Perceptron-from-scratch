@@ -89,7 +89,7 @@ class DropoutLayer:
 
     def forward(self, inputs):
         self.inputs = inputs
-        self.bmask = [[1 if random.random() < self.rate else 0 for i in row] for row in inputs]
+        self.bmask = [[1 if random.random() > self.rate else 0 for i in row] for row in inputs]
         outputs = [[i * m for i, m in zip(irow, mrow)] for irow, mrow in zip(inputs, self.bmask)]
         return outputs
 
