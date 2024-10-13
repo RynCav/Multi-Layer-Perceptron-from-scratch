@@ -1,5 +1,7 @@
 from utils import load, randomize_lists
-#inherited class, template
+
+
+# inherited class, template
 class Data:
     #initialize the data
     def __init__(self):
@@ -23,13 +25,15 @@ class Data:
         return self.test_X, self.test_y
 
 
-#standerd MNIST dataset
+# standerd MNIST dataset
 class MNIST(Data):
     directory = 'Datasets/MNIST/MNIST_'
+    size = 60000
     valuation_set = False
 
 
-#Fashion MNIST dataset
+# Fashion MNIST dataset
 class FashionMNIST(Data):
     directory = 'Datasets/Fashion MNIST/FMNIST_'
+    size = 60000
     valuation_set = False
