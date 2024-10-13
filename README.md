@@ -17,6 +17,8 @@ The following model got 97% accuracy on Fashion MNIST:
 - Dropout Layer 0.3
 
 - Dense Layer: 64 input neurons, 10 output neurons
+  
+- Softmax
 
 # Built in Classes
 
