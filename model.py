@@ -86,7 +86,7 @@ class Tanh:
 # Dropout Layer
 class DropoutLayer:
     def __init__(self, rate=0.3):
-        self.rate = rate
+        self.rate = 1 - rate
 
     def forward(self, inputs):
         self.inputs = inputs
@@ -277,26 +277,28 @@ class OneCycleLR:
         if step <= self.warmup_steps:
             self.warm_up(step)
         else:
-            self.aneeling(step)
+            self.annealing(step)
         return self.lr
 
     def warm_up(self, step):
         self.lr = self.initial_lr + (step / self.warmup_steps) * (self.max_lr - self.initial_lr)
 
-    def aneeling(self, step):
+    def annealing(self, step):
+        # Calculate the annealing rate (between 0 and 1)
         anneal = (step - self.warmup_steps) / self.anneal_steps
-        self.lr = max(self.initial_lr, self.max_lr - (self.max_lr - self.initial_lr) * anneal)
+        # Update learning rate according to the annealing schedule
+        self.lr = self.max_lr - (self.max_lr - self.initial_lr) * anneal
 
 
 #Slowely decay the lr lineary
 class InverseTimeDecay:
-    def __init__(self, lr, decay=0):
+    def __init__(self, lr=0.01, decay=5e-5):
         self.lr, self.initial_lr = lr, lr
         self.decay = decay
 
     def step(self, steps):
         if self.decay:
-            self.lr = self.initial_lr / (1 / (1 + self.decay * steps))
+            self.lr = self.initial_lr / (1 + self.decay * steps)
         return self.lr
 
 
