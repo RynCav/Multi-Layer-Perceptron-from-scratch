@@ -2,7 +2,7 @@
 
 A Multilayer Perceptron implementation in Python without external Libraries. 
 
-The following model got 90% accuracy on Fashion MNIST:
+The following model got 87% accuracy on Fashion MNIST:
 
 - Dense Layer: 784 input neurons, 100 hidden neurons
 
